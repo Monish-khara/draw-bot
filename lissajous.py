@@ -26,10 +26,9 @@ for frame in range(numFrames):
     t = frame / numFrames
     newPage(canvasSize, canvasSize)
 
-    fill(1)
+    fill(0x31/255, 0x29/255, 0x28/255)
     rect(0, 0, canvasSize, canvasSize)
 
-    stroke(0)
     strokeWidth(2)
     lineJoin("round")
     fill(None)
@@ -37,6 +36,10 @@ for frame in range(numFrames):
     for a in range(1, numShapes + 1):
         for b in range(1, numShapes + 1):
             with savedState():
+                if a == b:
+                    stroke(0xFF/255, 0x62/255, 0x00/255)
+                else:
+                    stroke(1)
                 translate(gridSize * a - 0.5 * gridSize,
                         canvasSize - gridSize * b + 0.5 * gridSize)
                 points = lissajous(b, a, 2 * pi * t, radius)
