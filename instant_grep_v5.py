@@ -12,8 +12,11 @@ scale_y = (CANVAS_H - 2 * PADDING) / SVG_H
 off_x = PADDING
 off_y = PADDING
 
-ACCENT = (0xFF / 255, 0x62 / 255, 0x00 / 255)
-PULSE_LEN = 0.12
+BG = (0x4A / 255, 0x44 / 255, 0x3B / 255)
+ACCENT = (0xF5 / 255, 0x4E / 255, 0x00 / 255)
+LINE_COLOR = (1, 1, 1)
+PULSE_LEN = 0.25
+TRAIL_SEGMENTS = 8
 
 
 def tx(x, y):
@@ -48,10 +51,10 @@ for frame in range(numFrames):
     t = frame / numFrames
 
     newPage(CANVAS_W, CANVAS_H)
-    fill(1)
+    fill(*BG)
     rect(0, 0, CANVAS_W, CANVAS_H)
 
-    stroke(0)
+    stroke(*LINE_COLOR)
     strokeWidth(2)
     lineJoin("miter")
     fill(None)
@@ -62,38 +65,48 @@ for frame in range(numFrames):
         path.lineTo(tx(*pts[2]))
         drawPath(path)
 
-    strokeWidth(4)
     lineJoin("round")
     fill(None)
     for apex, endpoint, idx in RAYS:
-        stagger = (idx / len(RAYS)) * 0.4
-        local_t = ((t - stagger) % 1.0) / (1.0 - 0.0)
+        stagger = (idx / len(RAYS)) * 0.7
+        local_t = ((t - stagger) % 1.0)
         local_t = max(0.0, min(1.0, local_t))
 
         head = local_t
         tail = max(0.0, head - PULSE_LEN)
 
-        fade = 1.0
-        if head < PULSE_LEN:
-            fade = head / PULSE_LEN
-        if head > 1.0 - PULSE_LEN:
-            fade = (1.0 - head) / PULSE_LEN
-        fade = max(0.0, min(1.0, fade))
-
-        if fade <= 0:
+        if head <= 0:
             continue
 
-        stroke(*ACCENT, fade)
+        for seg in range(TRAIL_SEGMENTS):
+            frac = seg / TRAIL_SEGMENTS
+            seg_start = lerp(tail, head, frac)
+            seg_end = lerp(tail, head, (seg + 1) / TRAIL_SEGMENTS)
 
-        p_tail = tx(lerp(apex[0], endpoint[0], tail),
-                     lerp(apex[1], endpoint[1], tail))
-        p_head = tx(lerp(apex[0], endpoint[0], head),
-                     lerp(apex[1], endpoint[1], head))
+            color_t = frac ** 0.3
+            r = lerp(LINE_COLOR[0], ACCENT[0], color_t)
+            g = lerp(LINE_COLOR[1], ACCENT[1], color_t)
+            b = lerp(LINE_COLOR[2], ACCENT[2], color_t)
 
-        path = BezierPath()
-        path.moveTo(p_tail)
-        path.lineTo(p_head)
-        drawPath(path)
+            edge_fade = 1.0
+            if head < PULSE_LEN:
+                edge_fade = head / PULSE_LEN
+            if head > 1.0 - PULSE_LEN * 0.5:
+                edge_fade = (1.0 - head) / (PULSE_LEN * 0.5)
+            edge_fade = max(0.0, min(1.0, edge_fade))
+
+            stroke(r, g, b, edge_fade)
+            strokeWidth(2)
+
+            p0 = tx(lerp(apex[0], endpoint[0], seg_start),
+                     lerp(apex[1], endpoint[1], seg_start))
+            p1 = tx(lerp(apex[0], endpoint[0], seg_end),
+                     lerp(apex[1], endpoint[1], seg_end))
+
+            path = BezierPath()
+            path.moveTo(p0)
+            path.lineTo(p1)
+            drawPath(path)
 
     saveImage(f"output/frames_instant_grep_v5/frame_{frame:03d}.png")
     newDrawing()
